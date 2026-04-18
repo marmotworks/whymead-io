@@ -1,0 +1,43 @@
+{
+    "CallerReference": "whymead-dist-1",
+    "Aliases": {
+        "Quantity": 1,
+        "Items": ["whymead.io"]
+    },
+    "ViewerCertificate": {
+        "ACMCertificateArn": "arn:aws:acm:us-east-1:309229301022:certificate/a4a2a7cd-4c8f-4329-b95c-599ed7452098",
+        "SSLSupportMethod": "sni-only"
+    },
+    "DefaultRootObject": "index.html",
+    "Origins": {
+        "Quantity": 1,
+        "Items": [
+            {
+                "Id": "S3-whymead-io",
+                "DomainName": "whymead.io.s3-website-us-east-1.amazonaws.com",
+                "CustomOriginConfig": {
+                    "HTTPPort": 80,
+                    "HTTPSPort": 443,
+                    "OriginProtocolPolicy": "http-only"
+                }
+            }
+        ]
+    },
+    "DefaultCacheBehavior": {
+        "TargetOriginId": "S3-whymead-io",
+        "ForwardedValues": {
+            "QueryString": false,
+            "Cookies": {
+                "Forward": "none"
+            }
+        },
+        "TrustedSigners": {
+            "Enabled": false,
+            "Quantity": 0
+        },
+        "ViewerProtocolPolicy": "redirect-to-https",
+        "MinTTL": 0
+    },
+    "Enabled": true,
+    "Comment": "Distribution for whymead.io"
+}

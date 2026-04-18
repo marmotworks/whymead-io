@@ -1,0 +1,16 @@
+{
+    "Changes": [
+        {
+            "Action": "CREATE",
+            "ResourceRecordSet": {
+                "Name": "whymead.io.",
+                "Type": "A",
+                "AliasTarget": {
+                    "DNSName": "d10qgjesaw8l17.cloudfront.net",
+                    "HostedZoneId": "Z2FDTNDATAQYW2",
+                    "EvaluateTargetHealth": false
+                }
+            }
+        }
+    ]
+}

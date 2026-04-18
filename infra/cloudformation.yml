@@ -1,0 +1,203 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Infrastructure for whymead.io - Static website with CloudFront, S3, Route53, and ACM
+
+Parameters:
+  DomainName:
+    Type: String
+    Default: whymead.io
+    Description: The primary domain name for the website
+
+  HostedZoneId:
+    Type: String
+    Default: Z05778282QD2LM9LQ8XH
+    Description: Route53 Hosted Zone ID for the domain
+
+  ACMCertificateArn:
+    Type: String
+    Default: arn:aws:acm:us-east-1:309229301022:certificate/a4a2a7cd-4c8f-4329-b95c-599ed7452098
+    Description: ACM Certificate ARN for HTTPS (must be in us-east-1 for CloudFront)
+
+  WebsiteContentBucket:
+    Type: String
+    Default: why-meet-io
+    Description: S3 bucket name for website content (must be globally unique)
+
+Resources:
+  # S3 Bucket for static website hosting
+  WebsiteBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref WebsiteContentBucket
+      AccessControl: Private
+      WebsiteConfiguration:
+        IndexDocument: index.html
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      VersioningConfiguration:
+        Status: Enabled
+      LifecycleConfiguration:
+        Rules:
+          - Id: DeleteNonCurrentVersions
+            Status: Enabled
+            NoncurrentVersionExpiration:
+              NoncurrentDays: 90
+      Tags:
+        - Key: Name
+          Value: !Sub '${DomainName}-website'
+        - Key: Environment
+          Value: production
+
+  # Bucket Policy - allows CloudFront OAI to read objects
+  BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref WebsiteContentBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: !GetAtt CloudFrontOAI.IamArn
+            Action: s3:GetObject
+            Resource: !Sub 'arn:aws:s3:::${WebsiteContentBucket}/*'
+
+  # CloudFront Origin Access Identity
+  CloudFrontOAI:
+    Type: AWS::CloudFront::CloudFrontOriginAccessIdentity
+    Properties:
+      CloudFrontOriginAccessIdentityConfig:
+        Comment: !Sub 'OAI for ${DomainName}'
+        SAMLAccount: ''
+
+  # CloudFront Distribution
+  CloudFrontDistribution:
+    Type: AWS::CloudFront::Distribution
+    DependsOn:
+      - BucketPolicy
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        Comment: !Sub 'CloudFront distribution for ${DomainName}'
+        DefaultRootObject: index.html
+        Aliases:
+          - !Ref DomainName
+        Origins:
+          - Id: S3Origin
+            DomainName: !Sub '${WebsiteContentBucket}.s3.amazonaws.com'
+            S3OriginConfig:
+              OriginAccessIdentity: !Sub 'origin-access-identity/cloudfront/${CloudFrontOAI}'
+            CustomOriginConfig:
+              HTTPPort: 80
+              HTTPSPort: 443
+              OriginProtocolPolicy: http-only
+              OriginSSLProtocols:
+                - TLSv1.2
+        DefaultCacheBehavior:
+          AllowedMethods:
+            - GET
+            - HEAD
+            - OPTIONS
+          CachedMethods:
+            - GET
+            - HEAD
+          ForwardedValues:
+            QueryString: false
+            Cookies:
+              Forward: none
+          TargetOriginId: S3Origin
+          ViewerProtocolPolicy: redirect-to-https
+          MinTTL: 0
+          DefaultTTL: 86400
+          MaxTTL: 31536000
+          TrustedSigners:
+            Enabled: false
+          ResponseHeadersPolicyId: !Ref SecurityHeadersPolicy
+        ViewerCertificate:
+          AcmCertificateArn: !Ref ACMCertificateArn
+          SslSupportMethod: sni-only
+          MinimumProtocolVersion: TLSv1.2_2021
+        HttpVersion: http2
+        PriceClass: PriceClass_100
+        IsIPV6Enabled: true
+
+  # Security Headers Response Headers Policy
+  SecurityHeadersPolicy:
+    Type: AWS::CloudFront::ResponseHeadersPolicy
+    Properties:
+      ResponseHeadersPolicyConfig:
+        Name: !Sub '${DomainName}-security-headers'
+        Comment: Security headers for whymead.io
+        SecurityHeadersConfig:
+          ContentTypeOptions:
+            Override: true
+          FrameOptions:
+            FrameOption: DENY
+            Override: true
+          ReferrerPolicy:
+            ReferrerPolicy: no-referrer
+            Override: true
+          StrictTransportSecurity:
+            AccessControlMaxAgeSec: 31536000
+            IncludeSubdomains: true
+            Override: true
+          XSSProtection:
+            Protection: true
+            ModeBlock: true
+            Override: true
+
+  # Route53 A Record (Alias to CloudFront)
+  Route53ARecord:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: !Ref HostedZoneId
+      Name: !Ref DomainName
+      Type: A
+      AliasTarget:
+        DNSName: !GetAtt CloudFrontDistribution.DomainName
+        HostedZoneId: Z2FDTNDATAQYW2
+        EvaluateTargetHealth: false
+
+  # Route53 AAAA Record (Alias to CloudFront for IPv6)
+  Route53AAAARecord:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: !Ref HostedZoneId
+      Name: !Ref DomainName
+      Type: AAAA
+      AliasTarget:
+        DNSName: !GetAtt CloudFrontDistribution.DomainName
+        HostedZoneId: Z2FDTNDATAQYW2
+        EvaluateTargetHealth: false
+
+Outputs:
+  WebsiteURL:
+    Description: S3 Website Endpoint URL
+    Value: !Sub 'http://${WebsiteContentBucket}.s3-website-us-east-1.amazonaws.com'
+    Export:
+      Name: !Sub '${DomainName}-WebsiteURL'
+
+  CloudFrontDomainName:
+    Description: CloudFront Distribution Domain Name
+    Value: !GetAtt CloudFrontDistribution.DomainName
+    Export:
+      Name: !Sub '${DomainName}-CloudFrontDomainName'
+
+  CloudFrontDistributionId:
+    Description: CloudFront Distribution ID
+    Value: !Ref CloudFrontDistribution
+    Export:
+      Name: !Sub '${DomainName}-CloudFrontDistributionId'
+
+  S3BucketName:
+    Description: S3 Bucket Name
+    Value: !Ref WebsiteContentBucket
+    Export:
+      Name: !Sub '${DomainName}-S3BucketName'
+
+  DomainName:
+    Description: Primary Domain Name
+    Value: !Ref DomainName
+    Export:
+      Name: !Sub '${DomainName}-DomainName'
