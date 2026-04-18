@@ -9,7 +9,7 @@ Parameters:
 
   HostedZoneId:
     Type: String
-    Default: Z05778282QD2LM9LQ8XH
+    Default: Z1047891W4VAY5MAROPO
     Description: Route53 Hosted Zone ID for the domain
 
   ACMCertificateArn:
@@ -28,7 +28,6 @@ Resources:
     Type: AWS::S3::Bucket
     Properties:
       BucketName: !Ref WebsiteContentBucket
-      AccessControl: Private
       WebsiteConfiguration:
         IndexDocument: index.html
       BucketEncryption:
@@ -51,25 +50,24 @@ Resources:
 
   # Bucket Policy - allows CloudFront OAI to read objects
   BucketPolicy:
-    Type: AWS::S3::BucketPolicy
-    Properties:
-      Bucket: !Ref WebsiteContentBucket
-      PolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Effect: Allow
-            Principal:
-              AWS: !GetAtt CloudFrontOAI.IamArn
-            Action: s3:GetObject
-            Resource: !Sub 'arn:aws:s3:::${WebsiteContentBucket}/*'
+     Type: AWS::S3::BucketPolicy
+     Properties:
+       Bucket: !Ref WebsiteContentBucket
+       PolicyDocument:
+         Version: '2012-10-17'
+         Statement:
+           - Effect: Allow
+             Principal:
+               AWS: !Sub 'arn:aws:iam::cloudfront:user/CloudFront Origin Access Identity ${CloudFrontOAI}'
+             Action: s3:GetObject
+             Resource: !Sub 'arn:aws:s3:::${WebsiteContentBucket}/*'
 
   # CloudFront Origin Access Identity
   CloudFrontOAI:
     Type: AWS::CloudFront::CloudFrontOriginAccessIdentity
     Properties:
       CloudFrontOriginAccessIdentityConfig:
-        Comment: !Sub 'OAI for ${DomainName}'
-        SAMLAccount: ''
+         Comment: !Sub 'OAI for ${DomainName}'
 
   # CloudFront Distribution
   CloudFrontDistribution:
@@ -78,56 +76,47 @@ Resources:
       - BucketPolicy
     Properties:
       DistributionConfig:
-        Enabled: true
-        Comment: !Sub 'CloudFront distribution for ${DomainName}'
-        DefaultRootObject: index.html
-        Aliases:
-          - !Ref DomainName
-        Origins:
-          - Id: S3Origin
-            DomainName: !Sub '${WebsiteContentBucket}.s3.amazonaws.com'
-            S3OriginConfig:
-              OriginAccessIdentity: !Sub 'origin-access-identity/cloudfront/${CloudFrontOAI}'
-            CustomOriginConfig:
-              HTTPPort: 80
-              HTTPSPort: 443
-              OriginProtocolPolicy: http-only
-              OriginSSLProtocols:
-                - TLSv1.2
-        DefaultCacheBehavior:
-          AllowedMethods:
-            - GET
-            - HEAD
-            - OPTIONS
-          CachedMethods:
-            - GET
-            - HEAD
-          ForwardedValues:
-            QueryString: false
-            Cookies:
-              Forward: none
-          TargetOriginId: S3Origin
-          ViewerProtocolPolicy: redirect-to-https
-          MinTTL: 0
-          DefaultTTL: 86400
-          MaxTTL: 31536000
-          TrustedSigners:
-            Enabled: false
-          ResponseHeadersPolicyId: !Ref SecurityHeadersPolicy
-        ViewerCertificate:
-          AcmCertificateArn: !Ref ACMCertificateArn
-          SslSupportMethod: sni-only
-          MinimumProtocolVersion: TLSv1.2_2021
-        HttpVersion: http2
-        PriceClass: PriceClass_100
-        IsIPV6Enabled: true
+         Enabled: true
+         Comment: !Sub 'CloudFront distribution for ${DomainName}'
+         DefaultRootObject: index.html
+         Aliases:
+           - !Ref DomainName
+         Origins:
+           - Id: S3Origin
+             DomainName: !Sub '${WebsiteContentBucket}.s3.amazonaws.com'
+             S3OriginConfig:
+               OriginAccessIdentity: !Sub 'origin-access-identity/cloudfront/${CloudFrontOAI}'
+         DefaultCacheBehavior:
+           AllowedMethods:
+             - GET
+             - HEAD
+             - OPTIONS
+           CachedMethods:
+             - GET
+             - HEAD
+           ForwardedValues:
+             QueryString: false
+             Cookies:
+               Forward: none
+           TargetOriginId: S3Origin
+           ViewerProtocolPolicy: redirect-to-https
+           MinTTL: 0
+           DefaultTTL: 86400
+           MaxTTL: 31536000
+           ResponseHeadersPolicyId: !Ref SecurityHeadersPolicy
+         ViewerCertificate:
+           AcmCertificateArn: !Ref ACMCertificateArn
+           SslSupportMethod: sni-only
+           MinimumProtocolVersion: TLSv1.2_2021
+         HttpVersion: http2
+         PriceClass: PriceClass_100
 
   # Security Headers Response Headers Policy
   SecurityHeadersPolicy:
     Type: AWS::CloudFront::ResponseHeadersPolicy
     Properties:
       ResponseHeadersPolicyConfig:
-        Name: !Sub '${DomainName}-security-headers'
+        Name: 'whymeadio-security-headers-policy'
         Comment: Security headers for whymead.io
         SecurityHeadersConfig:
           ContentTypeOptions:
@@ -176,28 +165,28 @@ Outputs:
     Description: S3 Website Endpoint URL
     Value: !Sub 'http://${WebsiteContentBucket}.s3-website-us-east-1.amazonaws.com'
     Export:
-      Name: !Sub '${DomainName}-WebsiteURL'
+      Name: whymeadio-WebsiteURL
 
   CloudFrontDomainName:
     Description: CloudFront Distribution Domain Name
     Value: !GetAtt CloudFrontDistribution.DomainName
     Export:
-      Name: !Sub '${DomainName}-CloudFrontDomainName'
+      Name: whymeadio-CloudFrontDomainName
 
   CloudFrontDistributionId:
     Description: CloudFront Distribution ID
     Value: !Ref CloudFrontDistribution
     Export:
-      Name: !Sub '${DomainName}-CloudFrontDistributionId'
+      Name: whymeadio-CloudFrontDistributionId
 
   S3BucketName:
     Description: S3 Bucket Name
     Value: !Ref WebsiteContentBucket
     Export:
-      Name: !Sub '${DomainName}-S3BucketName'
+      Name: whymeadio-S3BucketName
 
   DomainName:
     Description: Primary Domain Name
     Value: !Ref DomainName
     Export:
-      Name: !Sub '${DomainName}-DomainName'
+      Name: whymeadio-DomainName

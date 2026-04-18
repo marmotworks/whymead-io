@@ -1,6 +1,30 @@
 # WHY MEAD
 
-A static website for WHY MEAD, hosted on AWS with CloudFront, S3, Route53, and ACM.
+A mead-making community and resource hub, hosted on AWS with CloudFront, S3, Route53, and ACM.
+
+## About
+
+WHY MEAD is a brand celebrating the art of mead-making. The site features a bold bee-themed design with animated elements and a honeycomb background pattern, representing the craft and community around this ancient honey-based beverage.
+
+## CloudFormation Linting
+
+This project uses **[cfn-lint](https://github.com/aws-cloudformation/cfn-lint)** to validate the CloudFormation template.
+
+### Installation
+
+```bash
+pip install cfnlint
+# or
+brew install cfn-lint
+```
+
+### Running the Linter
+
+```bash
+cfn-lint infra/cloudformation.yml
+```
+
+The template is validated against the AWS CloudFormation Resource Specification for `us-east-1`. All checks pass with no errors or warnings.
 
 ## Architecture
 
@@ -39,12 +63,12 @@ A static website for WHY MEAD, hosted on AWS with CloudFront, S3, Route53, and A
 ```
 .
 ├── public/
-│   └── index.html          # Website source
+│   ├── index.html          # Website source
+│   └── bee.png             # Logo image
 ├── infra/
 │   └── cloudformation.yml  # AWS CloudFormation template
 ├── cf_config.json          # CloudFront distribution config reference
 ├── cf_alias.json           # DNS alias record reference
-├── check_domains.sh        # Domain availability checker
 ├── README.md
 └── .gitignore
 ```
@@ -65,7 +89,7 @@ aws cloudformation create-stack \
   --capabilities CAPABILITY_IAM \
   --parameters \
     ParameterKey=DomainName,ParameterValue=whymead.io \
-    ParameterKey=HostedZoneId,ParameterValue=Z05778282QD2LM9LQ8XH \
+    ParameterKey=HostedZoneId,ParameterValue=Z1047891W4VAY5MAROPO \
     ParameterKey=ACMCertificateArn,ParameterValue=arn:aws:acm:us-east-1:309229301022:certificate/a4a2a7cd-4c8f-4329-b95c-599ed7452098 \
     ParameterKey=WebsiteContentBucket,ParameterValue=why-meet-io
 
@@ -114,20 +138,12 @@ aws cloudformation update-stack \
 aws cloudformation delete-stack --stack-name whymead-io
 ```
 
-## Domain Checker
-
-Check availability of alternative domain names:
-
-```bash
-./check_domains.sh
-```
-
 ## CloudFormation Parameters
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
 | `DomainName` | `whymead.io` | Primary domain name |
-| `HostedZoneId` | `Z05778282QD2LM9LQ8XH` | Route53 Hosted Zone ID |
+| `HostedZoneId` | `Z1047891W4VAY5MAROPO` | Route53 Hosted Zone ID |
 | `ACMCertificateArn` | `arn:aws:acm:us-east-1:309229301022:certificate/a4a2a7cd-4c8f-4329-b95c-599ed7452098` | ACM Certificate ARN for HTTPS |
 | `WebsiteContentBucket` | `why-meet-io` | S3 bucket name (must be globally unique) |
 
