@@ -302,208 +302,7 @@
             border-radius: 2px;
         }
 
-        /* About Section */
-        .about {
-            padding: 6rem 2rem;
-            background: var(--white);
-        }
-
-        .about-content {
-            max-width: 900px;
-            margin: 0 auto;
-            text-align: center;
-        }
-
-        .about-content p {
-            font-size: 1.15rem;
-            line-height: 2;
-            color: var(--brown-light);
-            margin-bottom: 1.5rem;
-        }
-
-        .about-content p strong {
-            color: var(--amber);
-        }
-
-        .ingredients {
-            display: flex;
-            justify-content: center;
-            gap: 3rem;
-            margin-top: 3rem;
-            flex-wrap: wrap;
-        }
-
-        .ingredient {
-            text-align: center;
-        }
-
-        .ingredient-icon {
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 1rem;
-            font-size: 2rem;
-            background: var(--gold-pale);
-            border: 2px solid var(--gold);
-        }
-
-        .ingredient span {
-            font-family: 'Playfair Display', serif;
-            font-weight: 700;
-            font-size: 1.1rem;
-            color: var(--brown);
-        }
-
-        /* Features Section */
-        .features {
-            padding: 6rem 2rem;
-            background: linear-gradient(180deg, var(--cream) 0%, var(--white) 100%);
-        }
-
-        .features-grid {
-            max-width: 1100px;
-            margin: 0 auto;
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-            gap: 2rem;
-        }
-
-        .feature-card {
-            background: var(--white);
-            padding: 2.5rem 2rem;
-            border-radius: 16px;
-            text-align: center;
-            transition: transform 0.3s, box-shadow 0.3s;
-            border: 1px solid rgba(212, 160, 23, 0.1);
-        }
-
-        .feature-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 40px rgba(62, 39, 35, 0.08);
-        }
-
-        .feature-icon {
-            font-size: 2.5rem;
-            margin-bottom: 1.25rem;
-        }
-
-        .feature-card h3 {
-            font-family: 'Playfair Display', serif;
-            font-size: 1.25rem;
-            margin-bottom: 0.75rem;
-            color: var(--brown);
-        }
-
-        .feature-card p {
-            font-size: 0.95rem;
-            color: var(--brown-light);
-            line-height: 1.7;
-        }
-
-        /* Offerings Section */
-        .offerings {
-            padding: 6rem 2rem;
-            background: var(--brown);
-            color: var(--cream);
-        }
-
-        .offerings .section-header h2 {
-            color: var(--gold-light);
-        }
-
-        .offerings .section-header p {
-            color: rgba(255, 248, 231, 0.7);
-        }
-
-        .offerings-grid {
-            max-width: 1100px;
-            margin: 0 auto;
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 1.5rem;
-        }
-
-        .offering-item {
-            display: flex;
-            gap: 1.25rem;
-            align-items: flex-start;
-            padding: 1.5rem;
-            border-radius: 12px;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(212, 160, 23, 0.15);
-            transition: background 0.3s;
-        }
-
-        .offering-item:hover {
-            background: rgba(255, 255, 255, 0.08);
-        }
-
-        .offering-icon {
-            font-size: 1.5rem;
-            flex-shrink: 0;
-            margin-top: 0.15rem;
-        }
-
-        .offering-item h3 {
-            font-family: 'Playfair Display', serif;
-            font-size: 1.15rem;
-            margin-bottom: 0.5rem;
-            color: var(--gold-light);
-        }
-
-        .offering-item p {
-            font-size: 0.9rem;
-            color: rgba(255, 248, 231, 0.65);
-            line-height: 1.7;
-        }
-
-        /* Story Section */
-        .story {
-            padding: 6rem 2rem;
-            background: var(--white);
-        }
-
-        .story-content {
-            max-width: 800px;
-            margin: 0 auto;
-            text-align: center;
-        }
-
-        .story-quote {
-            font-family: 'Playfair Display', serif;
-            font-size: clamp(1.5rem, 3.5vw, 2.25rem);
-            font-style: italic;
-            color: var(--brown);
-            line-height: 1.6;
-            margin-bottom: 1.5rem;
-            position: relative;
-        }
-
-        .story-quote::before {
-            content: '\201C';
-            font-size: 6rem;
-            color: var(--gold);
-            opacity: 0.3;
-            position: absolute;
-            top: -2.5rem;
-            left: -1rem;
-            font-style: normal;
-        }
-
-        .story-location {
-            font-size: 1rem;
-            color: var(--brown-light);
-            font-weight: 500;
-        }
-
-        .story-location span {
-            color: var(--gold);
-        }
-
-        /* CTA Section */
+       /* CTA Section */
         .cta {
             padding: 6rem 2rem;
             text-align: center;
@@ -637,14 +436,6 @@
                 padding: 5rem 1.5rem 3rem;
             }
 
-            .ingredients {
-                gap: 2rem;
-            }
-
-            .offerings-grid {
-                grid-template-columns: 1fr;
-            }
-
             .cta-links {
                 flex-direction: column;
                 align-items: center;
@@ -674,9 +465,6 @@
             <span></span><span></span><span></span>
         </button>
         <ul class="nav-links">
-            <li><a href="#about">About</a></li>
-            <li><a href="#features">Why Us</a></li>
-            <li><a href="#offerings">Offerings</a></li>
             <li><a href="/limited-edition.html" class="nav-cta">Limited Edition</a></li>
             <li><a href="#connect">Connect</a></li>
         </ul>
@@ -689,129 +477,13 @@
         <p class="hero-subtitle">Water &middot; Honey &middot; Yeast</p>
         <p class="hero-tagline">Unleash the WHY. WHY Mead reimagines the ancient drink of kings &mdash; crafted with pure ingredients, small-batch care, and the essence of <strong>simplicity</strong>.</p>
         <div class="hero-cta-group">
-            <a href="#offerings" class="btn btn-primary">Explore Our Meads</a>
-            <a href="/limited-edition.html" class="btn btn-secondary">Limited Edition</a>
+            <a href="/limited-edition.html" class="btn btn-primary">Limited Edition</a>
             <a href="#connect" class="btn btn-secondary">Get in Touch</a>
         </div>
         <div class="hero-scroll">
             <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <polyline points="6 9 12 15 18 9"></polyline>
             </svg>
-        </div>
-    </section>
-
-    <!-- About -->
-    <section class="about" id="about">
-        <div class="about-content fade-in">
-            <div class="section-header">
-                <h2>The Ancient Drink, Reimagined</h2>
-                <div class="section-divider"></div>
-            </div>
-            <p>More than just a beverage, WHY Mead is a <strong>story</strong>. We craft handcrafted small-batch meads using pure ingredients &mdash; water, honey, and yeast &mdash; capturing the essence of simplicity and timeless flavor.</p>
-            <p>Our flagship tasting room in San Antonio welcomes you to explore, connect, and savor the WHY Mead experience. With a replicable franchise model, we envision expansion across the nation, empowering franchisees to share the &ldquo;WHY&rdquo; behind their exceptional meads.</p>
-            <div class="ingredients">
-                <div class="ingredient">
-                    <div class="ingredient-icon">&#x1F4A7;</div>
-                    <span>Water</span>
-                </div>
-                <div class="ingredient">
-                    <div class="ingredient-icon">&#x1F6C1;</div>
-                    <span>Honey</span>
-                </div>
-                <div class="ingredient">
-                    <div class="ingredient-icon">&#x1F374;</div>
-                    <span>Yeast</span>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Features -->
-    <section class="features" id="features">
-        <div class="section-header fade-in">
-            <h2>Why WHY Mead?</h2>
-            <div class="section-divider"></div>
-            <p>Crafted with purpose, shared with community.</p>
-        </div>
-        <div class="features-grid">
-            <div class="feature-card fade-in">
-                <div class="feature-icon">&#x1F33F;</div>
-                <h3>Sustainable</h3>
-                <p>Crafted with local, organic honey. We support our beekeeping community and protect the environment.</p>
-            </div>
-            <div class="feature-card fade-in">
-                <div class="feature-icon">&#x2728;</div>
-                <h3>Gluten-Free & Vegan</h3>
-                <p>Wholesome, naturally free of gluten. WHY Mead welcomes everyone to the table.</p>
-            </div>
-            <div class="feature-card fade-in">
-                <div class="feature-icon">&#x1F451;</div>
-                <h3>Nectar of the Gods</h3>
-                <p>Enjoyed for centuries, WHY Mead is a taste of history with a bold modern twist.</p>
-            </div>
-            <div class="feature-card fade-in">
-                <div class="feature-icon">&#x1F40D;</div>
-                <h3>Bees & Trees</h3>
-                <p>Supporting bees and saving trees through responsible honey sourcing for a healthier planet.</p>
-            </div>
-        </div>
-    </section>
-
-    <!-- Offerings -->
-    <section class="offerings" id="offerings">
-        <div class="section-header fade-in">
-            <h2>What We Offer</h2>
-            <div class="section-divider"></div>
-            <p>From bottle to glass, experience the full WHY Mead journey.</p>
-        </div>
-        <div class="offerings-grid">
-            <div class="offering-item fade-in">
-                <div class="offering-icon">&#x1F37A;</div>
-                <div>
-                    <h3>Craft Meads</h3>
-                    <p>A diverse selection of dry, semi-sweet, and sweet meads in various flavors. Seasonal and limited-edition releases keep things fresh and exciting.</p>
-                </div>
-            </div>
-            <div class="offering-item fade-in">
-                <div class="offering-icon">&#x1F942;</div>
-                <div>
-                    <h3>Educational Tastings</h3>
-                    <p>Immerse yourself in the world of mead through interactive tastings that explore the unique qualities of each ingredient and their impact on flavor.</p>
-                </div>
-            </div>
-            <div class="offering-item fade-in">
-                <div class="offering-icon">&#x1F3AC;</div>
-                <div>
-                    <h3>Engaging Events</h3>
-                    <p>Workshops, pairing nights, live music, and community gatherings centered around the shared love of craft beverages and meaningful connections.</p>
-                </div>
-            </div>
-            <div class="offering-item fade-in">
-                <div class="offering-icon">&#x1F37B;</div>
-                <div>
-                    <h3>Relaxing Atmosphere</h3>
-                    <p>An inviting tasting room where you can unwind, socialize, and savor the WHY Mead experience in comfort.</p>
-                </div>
-            </div>
-            <div class="offering-item fade-in">
-                <div class="offering-icon">&#x1F6E5;</div>
-                <div>
-                    <h3>Retail Sales</h3>
-                    <p>Take home your favorite WHY Mead along with branded merchandise to continue the enjoyment beyond our walls.</p>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Story -->
-    <section class="story">
-        <div class="story-content fade-in">
-            <div class="section-header">
-                <h2>Our WHY</h2>
-                <div class="section-divider"></div>
-            </div>
-            <p class="story-quote">WHY Mead is more than just a meadery &mdash; it&rsquo;s a destination for exploration, community, and handcrafted delight.</p>
-            <p class="story-location">Flagship location in <span>San Antonio, Texas</span></p>
         </div>
     </section>
 
@@ -837,9 +509,6 @@
     <footer>
         <div class="footer-logo">WHY MEAD</div>
         <div class="footer-links">
-            <a href="#about">About</a>
-            <a href="#features">Why Us</a>
-            <a href="#offerings">Offerings</a>
             <a href="/limited-edition.html">Limited Edition</a>
             <a href="https://instagram.com/why.mead" target="_blank" rel="noopener">Instagram</a>
             <a href="mailto:hello@whymead.io">Contact</a>

@@ -1,2 +1,6 @@
 .DS_Store
 check_domains.sh
+
+# Dependencies
+node_modules/
+package-lock.json
