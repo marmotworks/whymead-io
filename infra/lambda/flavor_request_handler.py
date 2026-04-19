@@ -5,10 +5,10 @@ from datetime import datetime
 import boto3
 
 dynamodb = boto3.resource('dynamodb')
-table = dynamodb.Table(os.environ['FLAVOR_REQUESTS_TABLE'])
 
 
 def handler(event, context):
+    table = dynamodb.Table(os.environ['FLAVOR_REQUESTS_TABLE'])
     try:
         body = json.loads(event.get('body', '{}'))
 

@@ -4,12 +4,12 @@ from datetime import datetime
 import boto3
 
 dynamodb = boto3.resource('dynamodb')
-table = dynamodb.Table(os.environ['FLAVOR_REQUESTS_TABLE'])
 sns = boto3.client('sns')
-NOTIFICATION_EMAIL = os.environ['NOTIFICATION_EMAIL']
 
 
 def handler(event, context):
+    table = dynamodb.Table(os.environ['FLAVOR_REQUESTS_TABLE'])
+    NOTIFICATION_EMAIL = os.environ['NOTIFICATION_EMAIL']
     try:
         response = table.scan()
         items = response.get('Items', [])

@@ -27,6 +27,11 @@ Parameters:
     Default: mike@beef.tips
     Description: Email address to receive daily flavor request notifications
 
+  FlavorRequestsTableName:
+    Type: String
+    Default: WHY-Mead-FlavorRequests
+    Description: Name of the DynamoDB table for storing flavor request submissions
+
 Resources:
   # S3 Bucket for static website hosting
   WebsiteBucket:
@@ -206,7 +211,7 @@ Resources:
   FlavorRequestsTable:
     Type: AWS::DynamoDB::Table
     Properties:
-      TableName: WHY-Mead-FlavorRequests
+      TableName: !Ref FlavorRequestsTableName
       AttributeDefinitions:
         - AttributeName: id
           AttributeType: S
@@ -499,6 +504,6 @@ Outputs:
 
   FlavorRequestsTable:
     Description: DynamoDB table name for flavor requests
-    Value: !Ref FlavorRequestsTable
+    Value: !Ref FlavorRequestsTableName
     Export:
       Name: whymeadio-FlavorRequestsTable

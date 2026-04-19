@@ -7,6 +7,8 @@ const { join } = require('node:path');
 const BASE = join(__dirname, '..');
 const html = readFileSync(join(BASE, 'public', 'limited-edition.html'), 'utf8');
 const lambdaCode = readFileSync(join(BASE, 'infra', 'lambda', 'flavor_request_handler.py'), 'utf8');
+const dailyNotificationCode = readFileSync(join(BASE, 'infra', 'lambda', 'daily_notification.py'), 'utf8');
+const cloudformation = readFileSync(join(BASE, 'infra', 'cloudformation.yml'), 'utf8');
 
 let failures = 0;
 
@@ -309,10 +311,99 @@ runTest('Frontend error handling matches backend 400/500 responses', () => {
     ok(html.includes('alert('), 'Frontend shows alert on error');
 });
 
-// ── Summary ──────────────────────────────────────────────────────────────────
+console.log('\nDeployment Configuration Tests');
+console.log('─────────────────────────────────────────────');
+
+runTest('CloudFormation has FlavorRequestsTableName parameter', () => {
+    ok(cloudformation.includes('FlavorRequestsTableName:'), 'FlavorRequestsTableName parameter should exist');
+    const paramBlock = cloudformation.match(/FlavorRequestsTableName:[\s\S]{0,200}/);
+    ok(paramBlock && /\bType:\s*String\b/.test(paramBlock[0]),
+       'FlavorRequestsTableName should be Type: String');
+});
+
+runTest('FlavorRequestsTableName parameter has a default value', () => {
+    const paramMatch = cloudformation.match(/FlavorRequestsTableName:[\s\S]*?Default:\s*(\S+)/);
+    ok(paramMatch, 'FlavorRequestsTableName should have a Default value');
+    strictEqual(paramMatch[1], 'WHY-Mead-FlavorRequests',
+        'Default should be WHY-Mead-FlavorRequests');
+});
+
+runTest('DynamoDB table uses FlavorRequestsTableName parameter for TableName', () => {
+    const tableMatch = cloudformation.match(/FlavorRequestsTable:[\s\S]*?TableName:\s*(\S+)/);
+    ok(tableMatch, 'DynamoDB table should have a TableName property');
+    strictEqual(tableMatch[1], '!Ref',
+        'TableName should reference a parameter');
+    ok(cloudformation.includes('TableName: !Ref FlavorRequestsTableName'),
+       'TableName should reference FlavorRequestsTableName parameter');
+});
+
+runTest('FlavorRequestLambda reads FLAVOR_REQUESTS_TABLE from environment', () => {
+    ok(lambdaCode.includes("os.environ['FLAVOR_REQUESTS_TABLE']"),
+       'Handler should read table name from FLAVOR_REQUESTS_TABLE env var');
+});
+
+runTest('FlavorRequestLambda reads table inside handler function (not at module level)', () => {
+    const handlerMatch = lambdaCode.match(/def handler\(event, context\):([\s\S]*?)(?=\n\nclass|\Z)/);
+    ok(handlerMatch, 'Handler function should exist');
+    ok(handlerMatch[1].includes("os.environ['FLAVOR_REQUESTS_TABLE']"),
+       'FLAVOR_REQUESTS_TABLE should be read inside the handler function');
+    ok(handlerMatch[1].includes("dynamodb.Table(os.environ['FLAVOR_REQUESTS_TABLE'])"),
+       'Table should be initialized with env var inside handler');
+});
+
+runTest('FlavorRequestLambda env var references FlavorRequestsTable CloudFormation resource', () => {
+    ok(cloudformation.includes("FLAVOR_REQUESTS_TABLE: !Ref FlavorRequestsTable"),
+       'Lambda env var should reference the DynamoDB table resource');
+});
+
+runTest('DailyNotificationLambda also reads FLAVOR_REQUESTS_TABLE from environment', () => {
+    ok(dailyNotificationCode.includes("os.environ['FLAVOR_REQUESTS_TABLE']"),
+       'Daily notification handler should read table name from env var');
+});
+
+runTest('DailyNotificationLambda reads table inside handler function', () => {
+    const handlerMatch = dailyNotificationCode.match(/def handler\(event, context\):([\s\S]*?)(?=\n\nclass|$)/);
+    ok(handlerMatch, 'Daily notification handler function should exist');
+    ok(handlerMatch[1].includes("os.environ['FLAVOR_REQUESTS_TABLE']"),
+       'FLAVOR_REQUESTS_TABLE should be read inside daily notification handler');
+});
+
+runTest('DynamoDB table is created with correct key schema', () => {
+    ok(cloudformation.includes('KeyType: HASH'), 'Table should have a HASH key');
+    ok(cloudformation.includes('AttributeName: id'), 'Table should use id as the key attribute');
+    ok(cloudformation.includes('AttributeType: S'), 'Key attribute should be String type');
+});
+
+runTest('DynamoDB table has TTL configuration for expiration', () => {
+    ok(cloudformation.includes('TimeToLiveSpecification'), 'Table should have TTL configuration');
+    ok(cloudformation.includes('AttributeName: expiresAt'), 'TTL should use expiresAt attribute');
+    ok(cloudformation.includes('Enabled: true'), 'TTL should be enabled');
+});
+
+runTest('DynamoDB table uses PAY_PER_REQUEST billing', () => {
+    ok(cloudformation.includes('BillingMode: PAY_PER_REQUEST'),
+       'Table should use PAY_PER_REQUEST billing mode');
+});
+
+runTest('Lambda has IAM permission to write to the DynamoDB table', () => {
+    ok(cloudformation.includes('dynamodb:PutItem'),
+       'Lambda IAM policy should allow dynamodb:PutItem');
+    ok(cloudformation.includes('FlavorRequestsTable.Arn'),
+       'PutItem permission should target the FlavorRequestsTable');
+});
+
+runTest('Lambda has IAM permission to scan the table for notifications', () => {
+    ok(cloudformation.includes('dynamodb:Scan'),
+       'Daily notification Lambda IAM policy should allow dynamodb:Scan');
+});
+
+runTest('Outputs export the table name from the parameter', () => {
+    ok(cloudformation.includes('Value: !Ref FlavorRequestsTableName'),
+       'Output should export FlavorRequestsTableName parameter value');
+});
 
 console.log('\n─────────────────────────────────────────────');
-const total = 37;
+const total = 37 + 14;
 console.log(`Tests passed: ${total - failures} / ${total}`);
 console.log(`Tests failed: ${failures} / ${total}`);
 
