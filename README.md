@@ -214,7 +214,7 @@ aws cloudformation delete-stack --stack-name whymead-io
 - **Price Class**: PriceClass_100 (US, Canada, Europe, Asia)
 - **IPv6**: Enabled
 - **HTTP/2**: Enabled
-- **Cache Behaviors**: Static content from S3, `/api/*` proxied to API Gateway
+- **Cache Behaviors**: Static content from S3, `/v1/*` proxied to API Gateway
 
 ## Security Headers
 
@@ -231,7 +231,7 @@ The CloudFront distribution enforces the following security headers:
 The flavor request feature captures visitor submissions and stores them in DynamoDB:
 
 1. Visitor fills out the form on `/limited-edition.html`
-2. POST request to `/api/flavor-request` via CloudFront → API Gateway
+2. POST request to `/v1/flavor-request` via CloudFront → API Gateway
 3. Lambda function validates and saves to DynamoDB table `WHY-Mead-FlavorRequests`
 4. Daily notification Lambda (EventBridge scheduled, runs once per day):
    - Scans DynamoDB for all requests

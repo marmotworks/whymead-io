@@ -171,8 +171,8 @@ runTest('Success message shows via .show class (display: block)', () => {
     ok(cssMatch, 'CSS should set .form-success.show to display: block');
 });
 
-runTest('Form submits to /api/flavor-request via POST', () => {
-    ok(html.includes('/api/flavor-request'), 'Form should POST to /api/flavor-request');
+runTest('Form submits to /v1/flavor-request via POST', () => {
+    ok(html.includes('/v1/flavor-request'), 'Form should POST to /v1/flavor-request');
     ok(html.includes("'POST'") || html.includes('"POST"'), 'Request method should be POST');
 });
 

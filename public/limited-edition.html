@@ -694,7 +694,7 @@
             };
 
             try {
-                const response = await fetch('/api/flavor-request', {
+                const response = await fetch('/v1/flavor-request', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(formData)
