@@ -450,7 +450,7 @@ Resources:
     Properties:
       Name: WHY-Mead-DailyNotificationSchedule
       Description: Trigger daily flavor request summary notification
-      ScheduleExpression: rate(1 day)
+      ScheduleExpression: cron(45 3 * * ? *)
       State: ENABLED
       Targets:
         - Arn: !GetAtt DailyNotificationLambda.Arn
