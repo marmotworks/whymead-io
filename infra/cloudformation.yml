@@ -22,6 +22,11 @@ Parameters:
     Default: why-meet-io
     Description: S3 bucket name for website content (must be globally unique)
 
+  NotificationEmail:
+    Type: String
+    Default: mike@beef.tips
+    Description: Email address to receive daily flavor request notifications
+
 Resources:
   # S3 Bucket for static website hosting
   WebsiteBucket:
@@ -74,6 +79,7 @@ Resources:
     Type: AWS::CloudFront::Distribution
     DependsOn:
       - BucketPolicy
+      - FlavorApiDeployment
     Properties:
       DistributionConfig:
          Enabled: true
@@ -86,6 +92,14 @@ Resources:
              DomainName: !Sub '${WebsiteContentBucket}.s3.amazonaws.com'
              S3OriginConfig:
                OriginAccessIdentity: !Sub 'origin-access-identity/cloudfront/${CloudFrontOAI}'
+           - Id: ApiGatewayOrigin
+             DomainName: !Sub '${FlavorApi}.execute-api.${AWS::Region}.amazonaws.com'
+             CustomOriginConfig:
+               HTTPPort: 80
+               HTTPSPort: 443
+               OriginProtocolPolicy: https-only
+               OriginSSLProtocols:
+                 - TLSv1.2
          DefaultCacheBehavior:
            AllowedMethods:
              - GET
@@ -104,6 +118,30 @@ Resources:
            DefaultTTL: 86400
            MaxTTL: 31536000
            ResponseHeadersPolicyId: !Ref SecurityHeadersPolicy
+         CacheBehaviors:
+           - PathPattern: /api/*
+             AllowedMethods:
+               - GET
+               - HEAD
+               - OPTIONS
+               - POST
+               - PUT
+               - PATCH
+               - DELETE
+             CachedMethods:
+               - GET
+               - HEAD
+               - OPTIONS
+             ForwardedValues:
+               QueryString: true
+               Cookies:
+                 Forward: none
+             TargetOriginId: ApiGatewayOrigin
+             ViewerProtocolPolicy: redirect-to-https
+             MinTTL: 0
+             DefaultTTL: 0
+             MaxTTL: 0
+             ResponseHeadersPolicyId: !Ref SecurityHeadersPolicy
          ViewerCertificate:
            AcmCertificateArn: !Ref ACMCertificateArn
            SslSupportMethod: sni-only
@@ -160,6 +198,339 @@ Resources:
         HostedZoneId: Z2FDTNDATAQYW2
         EvaluateTargetHealth: false
 
+  # ============================================
+  # Backend Infrastructure for Flavor Requests
+  # ============================================
+
+  # DynamoDB Table for flavor requests
+  FlavorRequestsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: WHY-Mead-FlavorRequests
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+      TimeToLiveSpecification:
+        AttributeName: expiresAt
+        Enabled: true
+      Tags:
+        - Key: Name
+          Value: WHY-Mead-FlavorRequests
+        - Key: Environment
+          Value: production
+
+  # IAM Role for Flavor Request Lambda
+  FlavorRequestLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: FlavorRequestLambdaPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:PutItem
+                Resource: !GetAtt FlavorRequestsTable.Arn
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:PutLogEvents
+                  - logs:DescribeLogGroups
+                Resource: '*'
+
+  # Lambda Function for handling flavor request submissions
+  FlavorRequestLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: WHY-Mead-FlavorRequestHandler
+      Runtime: python3.12
+      Handler: flavor_request_handler.handler
+      MemorySize: 128
+      Timeout: 30
+      Role: !GetAtt FlavorRequestLambdaRole.Arn
+      Code:
+        S3Bucket: whymead-io-deployments
+        S3Key: lambda-functions.zip
+      Environment:
+        Variables:
+          FLAVOR_REQUESTS_TABLE: !Ref FlavorRequestsTable
+      Tags:
+        - Key: Name
+          Value: WHY-Mead-FlavorRequestHandler
+        - Key: Environment
+          Value: production
+
+  # API Gateway for flavor request endpoint
+  FlavorApi:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: WHY-Mead-FlavorApi
+      Description: API for handling flavor requests
+      EndpointConfiguration:
+        Types:
+          - REGIONAL
+
+  # API Gateway Deployment
+  FlavorApiDeployment:
+    Type: AWS::ApiGateway::Deployment
+    DependsOn:
+      - FlavorApiMethod
+      - FlavorApiOptionsMethod
+    Properties:
+      RestApiId: !Ref FlavorApi
+      Description: Deployment of WHY-Mead-FlavorApi
+      StageName: v1
+
+  # API Gateway Resource for /flavor-request
+  FlavorApiResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref FlavorApi
+      ParentId: !GetAtt FlavorApi.RootResourceId
+      PathPart: flavor-request
+
+  # API Gateway POST method
+  FlavorApiMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref FlavorApi
+      ResourceId: !Ref FlavorApiResource
+      HttpMethod: POST
+      AuthorizationType: NONE
+      ApiKeyRequired: false
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${FlavorRequestLambda.Arn}/invocations'
+        PassthroughBehavior: WHEN_NO_MATCH
+      MethodResponses:
+        - StatusCode: 200
+          ResponseModels:
+            application/json: Empty
+        - StatusCode: 400
+          ResponseModels:
+            application/json: Empty
+        - StatusCode: 500
+          ResponseModels:
+            application/json: Empty
+
+  # API Gateway OPTIONS method for CORS preflight
+  FlavorApiOptionsMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref FlavorApi
+      ResourceId: !Ref FlavorApiResource
+      HttpMethod: OPTIONS
+      AuthorizationType: NONE
+      Integration:
+        Type: MOCK
+        IntegrationResponses:
+          - StatusCode: 200
+            ResponseTemplates:
+              application/json: ''
+            ResponseParameters:
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key'"
+              method.response.header.Access-Control-Allow-Methods: "'POST,OPTIONS'"
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+        PassthroughBehavior: WHEN_NO_MATCH
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+      MethodResponses:
+        - StatusCode: 200
+          ResponseModels:
+            application/json: Empty
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Headers: true
+            method.response.header.Access-Control-Allow-Methods: true
+            method.response.header.Access-Control-Allow-Origin: true
+
+  # API Gateway resource for root (to handle /api/flavor-request path)
+  FlavorApiRootResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref FlavorApi
+      ParentId: !GetAtt FlavorApi.RootResourceId
+      PathPart: api
+
+  # API Gateway resource for flavor-request under /api
+  FlavorApiApiResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref FlavorApi
+      ParentId: !Ref FlavorApiRootResource
+      PathPart: flavor-request
+
+  # API Gateway POST method for /api/flavor-request
+  FlavorApiApiMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref FlavorApi
+      ResourceId: !Ref FlavorApiApiResource
+      HttpMethod: POST
+      AuthorizationType: NONE
+      ApiKeyRequired: false
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${FlavorRequestLambda.Arn}/invocations'
+        PassthroughBehavior: WHEN_NO_MATCH
+      MethodResponses:
+        - StatusCode: 200
+          ResponseModels:
+            application/json: Empty
+        - StatusCode: 400
+          ResponseModels:
+            application/json: Empty
+        - StatusCode: 500
+          ResponseModels:
+            application/json: Empty
+
+  # API Gateway OPTIONS method for /api/flavor-request CORS
+  FlavorApiApiOptionsMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref FlavorApi
+      ResourceId: !Ref FlavorApiApiResource
+      HttpMethod: OPTIONS
+      AuthorizationType: NONE
+      Integration:
+        Type: MOCK
+        IntegrationResponses:
+          - StatusCode: 200
+            ResponseTemplates:
+              application/json: ''
+            ResponseParameters:
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key'"
+              method.response.header.Access-Control-Allow-Methods: "'POST,OPTIONS'"
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+        PassthroughBehavior: WHEN_NO_MATCH
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+      MethodResponses:
+        - StatusCode: 200
+          ResponseModels:
+            application/json: Empty
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Headers: true
+            method.response.header.Access-Control-Allow-Methods: true
+            method.response.header.Access-Control-Allow-Origin: true
+
+  # Lambda permission for API Gateway
+  FlavorApiLambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref FlavorRequestLambda
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${FlavorApi}/*/*/*'
+
+  # SNS Topic for daily notifications
+  NotificationTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: WHY-Mead-FlavorRequests-Notifications
+      Tags:
+        - Key: Name
+          Value: WHY-Mead-FlavorRequests-Notifications
+        - Key: Environment
+          Value: production
+
+  # SNS Subscription to send notifications to email
+  NotificationEmailSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      TopicArn: !Ref NotificationTopic
+      Protocol: email
+      Endpoint: !Ref NotificationEmail
+
+  # IAM Role for Daily Notification Lambda
+  DailyNotificationLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: DailyNotificationLambdaPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:Scan
+                Resource: !GetAtt FlavorRequestsTable.Arn
+              - Effect: Allow
+                Action:
+                  - sns:Publish
+                Resource: !Ref NotificationTopic
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:PutLogEvents
+                  - logs:DescribeLogGroups
+                Resource: '*'
+
+  # Lambda Function for daily notifications
+  DailyNotificationLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: WHY-Mead-DailyNotification
+      Runtime: python3.12
+      Handler: daily_notification.handler
+      MemorySize: 128
+      Timeout: 60
+      Role: !GetAtt DailyNotificationLambdaRole.Arn
+      Code:
+        S3Bucket: whymead-io-deployments
+        S3Key: lambda-functions.zip
+      Environment:
+        Variables:
+          FLAVOR_REQUESTS_TABLE: !Ref FlavorRequestsTable
+          NOTIFICATION_TOPIC_ARN: !Ref NotificationTopic
+          NOTIFICATION_EMAIL: !Ref NotificationEmail
+      Tags:
+        - Key: Name
+          Value: WHY-Mead-DailyNotification
+        - Key: Environment
+          Value: production
+
+  # EventBridge Rule for daily execution (9 AM UTC)
+  DailyNotificationSchedule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: WHY-Mead-DailyNotificationSchedule
+      Description: Trigger daily flavor request summary notification
+      ScheduleExpression: rate(1 day)
+      State: ENABLED
+      Targets:
+        - Arn: !GetAtt DailyNotificationLambda.Arn
+          Id: DailyNotificationLambda
+
+  # Lambda permission for EventBridge
+  DailyNotificationLambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref DailyNotificationLambda
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !Sub 'arn:aws:events:${AWS::Region}:${AWS::AccountId}:rule/${DailyNotificationSchedule}'
+
 Outputs:
   WebsiteURL:
     Description: S3 Website Endpoint URL
@@ -190,3 +561,15 @@ Outputs:
     Value: !Ref DomainName
     Export:
       Name: whymeadio-DomainName
+
+  ApiGatewayUrl:
+    Description: API Gateway endpoint URL
+    Value: !Sub 'https://${FlavorApi}.execute-api.${AWS::Region}.amazonaws.com/v1'
+    Export:
+      Name: whymeadio-ApiGatewayUrl
+
+  FlavorRequestsTable:
+    Description: DynamoDB table name for flavor requests
+    Value: !Ref FlavorRequestsTable
+    Export:
+      Name: whymeadio-FlavorRequestsTable
